@@ -177,6 +177,52 @@ def main() -> None:
     expect("AC3 one pending", status, dup, 409)
 
     admin = token_for("platform_admin", "admin123")
+    status, anon_users = request("GET", f"{API}/api/admin/users")
+    expect("admin users missing token", status, anon_users, 401)
+    status, buyer_users = request("GET", f"{API}/api/admin/users", token=buyer)
+    expect("admin users buyer forbidden", status, buyer_users, 403)
+    status, users = request("GET", f"{API}/api/admin/users", token=admin)
+    expect(
+        "admin users list",
+        status,
+        users,
+        200,
+        lambda b: isinstance(b, dict)
+        and any(u.get("preferred_username") == "buyer" and u.get("display_name") == "Bea Buyer" for u in b.get("data", []))
+        and any(u.get("preferred_username") == "platform_admin" for u in b.get("data", []))
+        and all(
+            {"id", "keycloak_sub", "email", "preferred_username", "display_name", "given_name", "family_name", "phone", "locale", "created_at", "updated_at"}
+            <= set(u)
+            and "roles" not in u
+            for u in b.get("data", [])
+        ),
+    )
+    status, found = request("GET", f"{API}/api/admin/users?q=Bea", token=admin)
+    expect(
+        "admin users search",
+        status,
+        found,
+        200,
+        lambda b: any(u.get("preferred_username") == "buyer" for u in b.get("data", []))
+        and all(
+            "bea"
+            in " ".join(
+                str(part)
+                for part in (
+                    u.get("display_name"),
+                    u.get("email"),
+                    u.get("preferred_username"),
+                    u.get("given_name"),
+                    u.get("family_name"),
+                )
+                if part
+            ).lower()
+            for u in b.get("data", [])
+        ),
+    )
+    status, empty = request("GET", f"{API}/api/admin/users?q=no-such-brewer-zzz", token=admin)
+    expect("admin users search miss", status, empty, 200, lambda b: b.get("data") == [])
+
     status, queue = request("GET", f"{API}/api/admin/shop-requests?status=pending", token=admin)
     expect("AC5 list pending", status, queue, 200, lambda b: any(row["id"] == request_id for row in b.get("data", [])))
     status, bad = request(

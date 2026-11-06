@@ -27,7 +27,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     { href: "/shop-request", label: "Shop request" },
   ];
   if (admin) {
-    links.push({ href: "/admin/requests", label: "Requests" }, { href: "/admin/shops", label: "Shops" });
+    links.push(
+      { href: "/admin/requests", label: "Requests" },
+      { href: "/admin/shops", label: "Shops" },
+      { href: "/admin/users", label: "Users" },
+    );
   }
 
   return (

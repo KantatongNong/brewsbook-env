@@ -320,6 +320,48 @@ class IdentityRepository
     }
 
     /**
+     * Profiles already stored in MySQL. This does not read Keycloak's user directory.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listUsers(?string $query): array
+    {
+        if ($query !== null) {
+            $query = trim($query);
+            if ($query === '') {
+                $query = null;
+            } elseif (mb_strlen($query) > 255) {
+                throw new ApiException(422, 'validation_failed', 'q is too long', [
+                    'q' => 'Use 255 characters or fewer',
+                ]);
+            }
+        }
+
+        $db = db_connect();
+        $builder = $db->table('users');
+        if ($query !== null) {
+            // Query Builder binds LIKE values without escaping % and _.
+            $escapeChar = $db->likeEscapeChar;
+            $literal = str_replace(
+                [$escapeChar, '%', '_'],
+                [$escapeChar . $escapeChar, $escapeChar . '%', $escapeChar . '_'],
+                $query,
+            );
+            $builder->groupStart()
+                ->like('email', $literal)
+                ->orLike('preferred_username', $literal)
+                ->orLike('display_name', $literal)
+                ->orLike('given_name', $literal)
+                ->orLike('family_name', $literal)
+                ->groupEnd();
+        }
+
+        $rows = $builder->orderBy('id', 'DESC')->get()->getResultArray();
+
+        return array_map(fn (array $row) => $this->presentListedUser($row), $rows);
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     public function listShops(?string $platformStatus): array
@@ -557,6 +599,28 @@ class IdentityRepository
         }
 
         return substr($slug, 0, 100);
+    }
+
+    /**
+     * @param array<string, mixed> $user
+     *
+     * @return array<string, mixed>
+     */
+    private function presentListedUser(array $user): array
+    {
+        return [
+            'id'                 => (int) $user['id'],
+            'keycloak_sub'       => $user['keycloak_sub'],
+            'email'              => $user['email'],
+            'preferred_username' => $user['preferred_username'],
+            'display_name'       => $user['display_name'],
+            'given_name'         => $user['given_name'],
+            'family_name'        => $user['family_name'],
+            'phone'              => $user['phone'],
+            'locale'             => $user['locale'],
+            'created_at'         => $this->iso($user['created_at'] ?? null),
+            'updated_at'         => $this->iso($user['updated_at'] ?? null),
+        ];
     }
 
     /**
