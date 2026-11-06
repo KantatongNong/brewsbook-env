@@ -63,3 +63,7 @@ cd /opt/dev-brewsbook
 sudo docker compose up -d --build   # restores dev_app_brewsbook on :8888
 # restore Apache conf from backup if changed, then: sudo systemctl reload httpd
 ```
+
+## Keycloak image / arch
+
+Server is **x86_64**. If `quay.io` is unreachable from the host, pull `linux/amd64` elsewhere (`docker pull --platform linux/amd64 quay.io/keycloak/keycloak@sha256:<amd64-manifest>`), `docker save`, copy to the server, and `docker load`. Healthcheck path with relative `/auth` is **`/auth/health/ready`** on management port 9000.
