@@ -23,6 +23,20 @@ export interface Me {
   updated_at: string | null;
 }
 
+export interface DirectoryUser {
+  id: number;
+  keycloak_sub: string;
+  email: string | null;
+  preferred_username: string | null;
+  display_name: string | null;
+  given_name: string | null;
+  family_name: string | null;
+  phone: string | null;
+  locale: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
 export interface ShopRequest {
   id: number;
   request_type: string;

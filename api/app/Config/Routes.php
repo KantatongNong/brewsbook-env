@@ -31,5 +31,6 @@ $routes->group('api', ['filter' => 'jwt'], static function ($routes) {
         $routes->put('shops/(:num)/status', 'AdminShopsController::updateStatus/$1');
         $routes->get('shops', 'AdminShopsController::index');
         $routes->put('shops/(:num)', 'AdminShopsController::update/$1');
+        $routes->get('users', 'AdminUsersController::index');
     });
 });

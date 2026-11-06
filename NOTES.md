@@ -70,6 +70,11 @@ curl -s -X POST 'http://localhost:8081/realms/brewsbook/protocol/openid-connect/
 
 Use `username=platform_admin` and `password=admin123` for the admin token. Send the access token as `Authorization: Bearer <access_token>`.
 
+```bash
+curl -s 'http://localhost:8080/api/admin/users?q=buyer' \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+```
+
 Repeatable checks: `python3 scripts/qa-identity.py` (stack must already be up).
 
 ## API
@@ -85,6 +90,7 @@ All JSON. Missing, invalid, or expired bearer tokens return **401**. Authenticat
 | GET | `/api/admin/shop-requests` | platform admin | Optional `?status=pending\|approved\|rejected`. |
 | PUT | `/api/admin/shop-requests/{id}` | platform admin | `{"action":"approve","enabled_modules":["ecommerce"]}` or `{"action":"reject","rejection_reason":"..."}`. `status: approved\|rejected` is accepted as an alias of `action`. |
 | GET | `/api/admin/shops` | platform admin | Optional `?platform_status=enabled\|disabled`. |
+| GET | `/api/admin/users` | platform admin | MySQL `users` rows only (not a Keycloak directory sync). Fields: `id`, `keycloak_sub`, `email`, `preferred_username`, `display_name`, `given_name`, `family_name`, `phone`, `locale`, `created_at`, `updated_at`. Optional `?q=` is a literal substring match on display name, given name, family name, email, or username (`%` and `_` are not wildcards). A user appears after an authenticated API call upserts them. |
 | PUT | `/api/admin/shops/{id}` | platform admin | `name`, `description`, `phone`, `address_line`, `slug`, `open_status` (`open` or `closed`). Rejects `platform_status` here. |
 | PUT | `/api/admin/shops/{id}/modules` | platform admin | `{"enabled_modules":["location","beer_keg"]}`. Replaces flags. At least one key. |
 | PUT | `/api/admin/shops/{id}/status` | platform admin | `{"platform_status":"disabled"}` or `"enabled"`. Does not change `open_status`. |
@@ -110,6 +116,7 @@ Disable sets `platform_status=disabled` and leaves `open_status` alone. Enable r
 - Submit a shop request and read `GET /api/shop-requests/me`.
 - Admin request queue with a module picker, approve, and reject.
 - Admin shop list: edit details, change modules, disable and enable platform access, set open/closed separately.
+- Admin user list at `/admin/users` (`GET /api/admin/users`). Read-only. Same 403 gate as the other admin pages.
 
 Non-admins who open `/admin/*` see a 403 state and the API is not treated as authorized.
 
@@ -120,6 +127,7 @@ Non-admins who open `/admin/*` see a 403 state and the API is not treated as aut
 ## Limitations
 
 - No shop storefront, location, ecommerce catalog/cart/orders, rating, beer keg, POS, invites, or public shop page.
+- The admin user list does not create, edit, or delete users, and it does not read realm roles from Keycloak.
 - Roles are authoritative in Keycloak. MySQL stores the profile and shop membership, not a second copy of platform roles.
 - The API checks the token signature (Keycloak JWKS via `http://keycloak:8080`), `exp`, issuer `OIDC_ISSUER` (default `http://localhost:8081/realms/brewsbook`), and `azp` when present (`brewsbook-nextjs` or `brewsbook-api`). It does not require `aud` to equal the API client, because the browser sends the Next.js access token.
 - Approve fails with **502** and rolls back the shop if Keycloak cannot grant `owner` (admin password missing, Keycloak down, or the user id is unknown).
