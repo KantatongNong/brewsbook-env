@@ -1,7 +1,7 @@
 .PHONY: up down logs reset-db config ps pull up-dev down-dev logs-dev
 
 up:
-	docker compose up -d
+	docker compose up -d --build
 
 down:
 	docker compose down

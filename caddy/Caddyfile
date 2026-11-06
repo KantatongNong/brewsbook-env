@@ -7,7 +7,6 @@
 		reverse_proxy keycloak:8080
 	}
 	handle /api* {
-		uri strip_prefix /api
 		reverse_proxy api:80
 	}
 	handle /health {
@@ -25,7 +24,6 @@ localhost {
 		reverse_proxy keycloak:8080
 	}
 	handle /api* {
-		uri strip_prefix /api
 		reverse_proxy api:80
 	}
 	handle /health {

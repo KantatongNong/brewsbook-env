@@ -24,6 +24,10 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-brewsbook}
       MYSQL_USER: ${MYSQL_USER:-brewsbook}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+00:00
     ports:
       - "${MYSQL_PORT:-3306}:3306"
     volumes:
@@ -57,7 +61,8 @@ services:
       - ./keycloak/realm-brewsbook.json:/opt/keycloak/data/import/realm-brewsbook.json:ro
       - keycloak_data:/opt/keycloak/data
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200\\|UP'"]
+      # Keycloak 26 serves /health/ready on the management port (9000), not 8080.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200\\|UP'"]
       interval: 15s
       timeout: 5s
       retries: 20
@@ -79,17 +84,28 @@ services:
       DB_PASSWORD: ${MYSQL_PASSWORD}
       OIDC_ISSUER: ${OIDC_ISSUER:-http://localhost:8081/realms/brewsbook}
       OIDC_API_CLIENT_ID: ${OIDC_API_CLIENT_ID:-brewsbook-api}
+      OIDC_JWKS_URL: ${OIDC_JWKS_URL:-http://keycloak:8080/realms/brewsbook/protocol/openid-connect/certs}
+      OIDC_ALLOWED_AZP: ${OIDC_ALLOWED_AZP:-brewsbook-nextjs,brewsbook-api}
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-brewsbook}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,https://localhost}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8080}
+      CI_ENVIRONMENT: production
     ports:
       - "${API_PORT:-8080}:80"
     depends_on:
       mysql:
+        condition: service_healthy
+      keycloak:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1/health"]
       interval: 10s
       timeout: 3s
       retries: 5
-      start_period: 15s
+      start_period: 40s
 
   web:
     build:
@@ -101,6 +117,8 @@ services:
         PUBLIC_KEYCLOAK_URL: ${PUBLIC_KEYCLOAK_URL:-http://localhost:8081}
         NEXT_PUBLIC_OIDC_ISSUER: ${NEXT_PUBLIC_OIDC_ISSUER:-http://localhost:8081/realms/brewsbook}
         NEXT_PUBLIC_OIDC_CLIENT_ID: ${NEXT_PUBLIC_OIDC_CLIENT_ID:-brewsbook-nextjs}
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8080}
+        NEXT_PUBLIC_KEYCLOAK_URL: ${PUBLIC_KEYCLOAK_URL:-http://localhost:8081}
     container_name: brewsbook-web
     restart: unless-stopped
     networks: [brewsbook]
@@ -108,11 +126,17 @@ services:
       PUBLIC_WEB_URL: ${PUBLIC_WEB_URL:-http://localhost:3000}
       PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8080}
       PUBLIC_KEYCLOAK_URL: ${PUBLIC_KEYCLOAK_URL:-http://localhost:8081}
+      NEXT_PUBLIC_OIDC_ISSUER: ${NEXT_PUBLIC_OIDC_ISSUER:-http://localhost:8081/realms/brewsbook}
+      NEXT_PUBLIC_OIDC_CLIENT_ID: ${NEXT_PUBLIC_OIDC_CLIENT_ID:-brewsbook-nextjs}
+      NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8080}
+      NEXT_PUBLIC_KEYCLOAK_URL: ${PUBLIC_KEYCLOAK_URL:-http://localhost:8081}
     ports:
       - "${WEB_PORT:-3000}:3000"
     depends_on:
-      - api
-      - keycloak
+      api:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
 
   reverse-proxy:
     image: caddy:2.8-alpine

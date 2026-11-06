@@ -2,7 +2,8 @@
   "realm": "brewsbook",
   "enabled": true,
   "displayName": "Brewsbook",
-  "registrationAllowed": false,
+  "registrationAllowed": true,
+  "verifyEmail": false,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": true,
@@ -24,7 +25,7 @@
       "name": "Brewsbook Next.js (public)",
       "enabled": true,
       "publicClient": true,
-      "directAccessGrantsEnabled": false,
+      "directAccessGrantsEnabled": true,
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
       "protocol": "openid-connect",
@@ -42,8 +43,23 @@
         "+"
       ],
       "attributes": {
-        "pkce.code.challenge.method": "S256"
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:3000/*##http://127.0.0.1:3000/*##https://localhost/*"
       },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email",
+        "basic"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ],
       "fullScopeAllowed": true
     },
     {
@@ -63,5 +79,40 @@
       }
     }
   ],
-  "users": []
+  "users": [
+    {
+      "username": "buyer",
+      "enabled": true,
+      "email": "buyer@brewsbook.local",
+      "emailVerified": true,
+      "firstName": "Bea",
+      "lastName": "Buyer",
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "buyer123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["buyer"]
+    },
+    {
+      "username": "platform_admin",
+      "enabled": true,
+      "email": "admin@brewsbook.local",
+      "emailVerified": true,
+      "firstName": "Pat",
+      "lastName": "Admin",
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["buyer", "platform_admin"]
+    }
+  ]
 }

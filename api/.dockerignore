@@ -1,0 +1,14 @@
+vendor
+.git
+.env
+tests
+writable/logs/*
+writable/cache/*
+writable/debugbar/*
+writable/session/*
+writable/uploads/*
+!writable/logs/index.html
+!writable/cache/index.html
+!writable/debugbar/index.html
+!writable/session/index.html
+!writable/uploads/index.html
