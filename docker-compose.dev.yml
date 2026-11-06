@@ -26,7 +26,7 @@ services:
       - --import-realm
       - --http-port=8080
       - --http-relative-path=/auth
-      - --hostname=https://dev-brewsbook.dxtms.com
+      - --hostname=https://dev-brewsbook.dxtms.com/auth
       - --hostname-strict=false
       - --proxy-headers=xforwarded
     environment:
@@ -35,7 +35,7 @@ services:
       KC_HEALTH_ENABLED: "true"
       KC_HTTP_RELATIVE_PATH: /auth
       KC_PROXY_HEADERS: xforwarded
-      KC_HOSTNAME: https://dev-brewsbook.dxtms.com
+      KC_HOSTNAME: https://dev-brewsbook.dxtms.com/auth
       KC_HOSTNAME_STRICT: "false"
     volumes:
       - ./keycloak/realm-brewsbook.dev.json:/opt/keycloak/data/import/realm-brewsbook.json:ro
