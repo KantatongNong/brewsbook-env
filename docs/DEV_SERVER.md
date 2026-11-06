@@ -23,19 +23,19 @@ Thai + English mapping of the **real OVPN DEV host** (`dxnong@192.168.3.94`) ver
 | Container name | `brewsbook-api` / `brewsbook-web` | `dev_app_brewsbook` |
 | Env style | Docker/`MYSQL_*` + OIDC | CodeIgniter `database.default.*` / `app.baseURL` |
 
-## DocumentRoot mismatch (preserved) / ความไม่ตรงกันของ DocumentRoot
+## DocumentRoot / รากเอกสาร Apache
 
-On the DEV server these three disagree — mirrored as-is with comments:
+**Aligned in this repo** to `/var/www/html/web`:
 
 | Source | DocumentRoot |
 |--------|--------------|
-| Compose `APACHE_DOCUMENT_ROOT` | `/var/www/html/public` |
-| Image-baked `app-brewsbook/docker/apache/vhost.conf` | `/var/www/html/public` |
-| Runtime mount `config/apache/000-default.conf` | **`/var/www/html/web`** ← wins |
+| Compose `APACHE_DOCUMENT_ROOT` | `/var/www/html/web` |
+| Image-baked `app-brewsbook/docker/apache/vhost.conf` | `/var/www/html/web` |
+| Runtime mount `config/apache/000-default.conf` | `/var/www/html/web` |
 | Actual files today | `app-brewsbook/web/` |
 
-**EN:** Runtime Apache uses `/web` because of the bind-mount. Compose env `/public` is unused until Apache is configured to honor `APACHE_DOCUMENT_ROOT` (official PHP image pattern) or CodeIgniter `public/` lands.  
-**TH:** ค่าที่ Apache ใช้จริงคือ `/web` จากไฟล์ mount — env `/public` ยังไม่มีผลจนกว่าจะตั้ง Apache ให้ใช้ตัวแปรนี้ หรือย้ายโค้ด CI ไปที่ `public/`
+**EN:** Repo mirror is consistent on `/web`. The live host may still have an older image layer with `/public` until the image is rebuilt; runtime bind-mount already serves `/web`.  
+**TH:** ใน repo นี้ตั้งเป็น `/web` ครบแล้ว — บนเซิร์ฟเวอร์จริงอาจยังมี image เก่าที่ bake `/public` จนกว่าจะ rebuild แต่ runtime mount เสิร์ฟ `/web` อยู่แล้ว
 
 ## Layout on server / โครงสร้างบนเซิร์ฟเวอร์
 
@@ -46,7 +46,7 @@ On the DEV server these three disagree — mirrored as-is with comments:
     Dockerfile
     .env                 # secrets — not in git
     docker/php/php.ini
-    docker/apache/vhost.conf   # baked → /public
+    docker/apache/vhost.conf   # → /web
     web/index.html             # Hello World
   config/apache/
     000-default.conf     # runtime → /web
@@ -63,7 +63,7 @@ Repo mirror: `dev-server/` (same relative paths).
 cd dev-server
 cp .env.example app-brewsbook/.env   # fill placeholders; do not commit
 docker compose up -d --build
-# http://localhost:8888  → Hello World (if DocumentRoot /web is active)
+# http://localhost:8888  → Hello World (DocumentRoot /web)
 ```
 
 DB will **not** start with this compose — point `database.default.*` at a reachable MySQL (VPN + host IP, or a separate local MySQL).

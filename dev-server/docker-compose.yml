@@ -1,12 +1,10 @@
 # Mirrors /opt/dev-brewsbook/docker-compose.yml on DEV host 192.168.3.94
 # OVPN required to reach the host. DB is EXTERNAL (host MySQL :3305), not in this compose.
 #
-# DocumentRoot mismatch (preserved from server — do not "fix" blindly):
-#   - environment APACHE_DOCUMENT_ROOT=/var/www/html/public
-#   - image-baked docker/apache/vhost.conf → DocumentRoot /var/www/html/public
-#   - runtime bind-mount config/apache/000-default.conf → DocumentRoot /var/www/html/web
-#   - live content today lives under app-brewsbook/web/ (Hello World)
-# Runtime wins via the bind-mount of 000-default.conf.
+# DocumentRoot: /var/www/html/web everywhere in this repo mirror
+#   (compose APACHE_DOCUMENT_ROOT, image-baked vhost, runtime 000-default.conf).
+# Note: the live host may still have an older image vhost baked as /public until rebuilt;
+# runtime bind-mount already serves /web. This repo is the aligned source of truth.
 #
 # Volume mode ":2" on logs is copied as-on-server (likely typo for :rw / omitted mode).
 
@@ -32,8 +30,7 @@ services:
     networks:
       - app-network
     environment:
-      # NOTE: env says /public but runtime vhost (000-default.conf) uses /web — see header comment.
-      - APACHE_DOCUMENT_ROOT=/var/www/html/public
+      - APACHE_DOCUMENT_ROOT=/var/www/html/web
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

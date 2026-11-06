@@ -24,7 +24,7 @@ Suggested local URLs:
 
 | Service | Container | Host port | Internal | Notes |
 |---------|-----------|-----------|----------|-------|
-| PHP Apache | `dev_app_brewsbook` | **8888** | 80 | DocumentRoot runtime `/var/www/html/web` |
+| PHP Apache | `dev_app_brewsbook` | **8888** | 80 | DocumentRoot `/var/www/html/web` |
 | MySQL (external) | — | **3305** on `192.168.3.94` | — | DB `dev_brewbook`, user `dbBrew` |
 | Public HTTPS | — | 443 | — | https://dev-brewsbook.dxtms.com/ |
 | DB UI | — | 8080 on `192.168.3.100` | — | points at `192.168.3.94:3305` |

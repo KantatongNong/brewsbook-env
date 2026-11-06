@@ -84,7 +84,7 @@ How local compose differs from server:
 | DB | in-compose MySQL :3306 | external host :3305 |
 | Auth | Keycloak start-dev | not included |
 | PHP base | stub 8.2 (`api/`) | **8.3.36-apache** (matches server) |
-| DocumentRoot | stub `/var/www/html` health | runtime **`/var/www/html/web`** (see mismatch note) |
+| DocumentRoot | stub `/var/www/html` health | **`/var/www/html/web`** (aligned) |
 
 รายละเอียดเทียบ: [docs/DEV_SERVER.md](docs/DEV_SERVER.md)
 
@@ -97,14 +97,10 @@ docker compose up -d --build
 # http://localhost:8888
 ```
 
-### DocumentRoot mismatch (preserved)
+### DocumentRoot
 
-เซิร์ฟเวอร์จริงมีค่าไม่ตรงกัน — เก็บไว้ในไฟล์พร้อมคอมเมนต์:
-
-- Compose env `APACHE_DOCUMENT_ROOT=/var/www/html/public`
-- Image vhost `docker/apache/vhost.conf` → `/var/www/html/public`
-- Runtime mount `config/apache/000-default.conf` → **`/var/www/html/web`** (ค่าที่ใช้จริง)
-- เนื้อหาปัจจุบันอยู่ที่ `web/` (Hello World)
+Aligned in this repo to **`/var/www/html/web`** (compose env, image vhost, runtime `000-default.conf`).  
+เนื้อหาปัจจุบันอยู่ที่ `web/` (Hello World). Live host may need an image rebuild to refresh the baked vhost; runtime mount already uses `/web`.
 
 ## Default local URLs
 
@@ -209,7 +205,7 @@ brewsbook-env/
       Dockerfile
       .env.example
       docker/php/php.ini
-      docker/apache/vhost.conf   # baked → /public
+      docker/apache/vhost.conf   # → /web
       web/index.html
     config/apache/
       000-default.conf           # runtime → /web
@@ -220,7 +216,7 @@ brewsbook-env/
 
 ## Next steps (SE)
 
-1. ใส่ source Next.js / CodeIgniter จริงแทน stub (align DocumentRoot `public` vs `web`)
+1. ใส่ source Next.js / CodeIgniter จริงแทน stub (DocumentRoot already `/web`)
 2. ตั้ง staging/prod overlays (Keycloak production mode, HTTPS จริง, secrets manager)
 3. CI/CD, backups, observability
 4. Sync roles policy กับ BA (OQ-14)
