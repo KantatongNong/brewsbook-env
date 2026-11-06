@@ -6,8 +6,8 @@
 |---------|-----------|-----------|----------|-------|
 | Caddy (HTTP) | reverse-proxy | 80 | 80 | Optional edge |
 | Caddy (HTTPS) | reverse-proxy | 443 | 443 | Local TLS (self-signed via Caddy) |
-| Web (Next stub) | web | 3000 | 3000 | Hello page |
-| API (PHP stub) | api | 8080 | 80 | `/health` JSON |
+| Web (Next.js) | web | 3000 | 3000 | Identity & Profile UI |
+| API (CodeIgniter) | api | 8080 | 80 | `/health` and `/api/*` |
 | Keycloak | keycloak | 8081 | 8080 | Admin + realm `brewsbook` |
 | MySQL | mysql | 3306 | 3306 | DB `brewsbook` |
 

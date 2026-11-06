@@ -11,6 +11,7 @@ keycloak/data/
 api/vendor/
 web/node_modules/
 web/.next/
+web/tsconfig.tsbuildinfo
 dev-server/logs/apache/*.log
 *.pem
 *.key

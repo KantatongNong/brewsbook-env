@@ -12,9 +12,9 @@ Local bootstrap for Brewsbook SE — runnable without real FE/API source yet (st
 
 ```
 Browser → Caddy (reverse-proxy)
-            ├─ web   (Next.js stub → real Next later)
+            ├─ web   (Next.js Identity & Profile)
             ├─ keycloak (OIDC, start-dev)
-            └─ api   (CodeIgniter PHP stub → real CI later)
+            └─ api   (CodeIgniter Identity & Profile)
                        └─ mysql:8
 ```
 
@@ -106,7 +106,7 @@ Aligned in this repo to **`/var/www/html/web`** (compose env, image vhost, runti
 
 | What | URL |
 |------|-----|
-| Web stub | http://localhost:3000 |
+| Web | http://localhost:3000 |
 | API `/health` | http://localhost:8080/health |
 | Keycloak | http://localhost:8081 |
 | Keycloak Admin | http://localhost:8081/admin |
@@ -173,14 +173,15 @@ Network: `app-network`
 
 ## MySQL schema stubs
 
-`mysql/init/01-schema.sql` สร้างตารางบาง: `users`, `shops`, `shop_requests`, `shop_modules`, `shop_members`  
-**หมายเหตุ:** migrations ของแอปจะเป็นเจ้าของ schema จริงในภายหลัง — ไฟล์นี้เป็น stub เพื่อให้ local ขึ้นได้
+`mysql/init/01-schema.sql` creates `users`, `shops`, `shop_requests`, `shop_modules`, and `shop_members` for Identity & Profile. The API migration upgrades an existing volume on startup. See [NOTES.md](NOTES.md).
 
-## API / Web stubs
+## Identity & Profile
 
-- API ไม่ validate JWT ตอนนี้ — แค่ตอบ `/health` เป็น JSON 200
-- Web เป็นหน้า hello ที่ลิงก์ Keycloak/API จาก env — แทนที่ด้วย Next.js + React + Tailwind เมื่อมี source
-- Dev-server `web/` เป็น Hello World ตาม host จริง
+The local API and web services implement Identity & Profile (Keycloak login, profile, shop requests, platform-admin approve/modules, shop enable/disable). How to run, exact routes, test users, and what is intentionally not built: [NOTES.md](NOTES.md).
+
+`python3 scripts/qa-identity.py` exercises the API against a running stack.
+
+Dev-server `web/` is still the Hello World mirror of the OVPN host. It is not this app.
 
 ## Layout
 
