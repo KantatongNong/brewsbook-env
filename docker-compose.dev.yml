@@ -1,0 +1,126 @@
+# Brewsbook DEV overlay for 192.168.3.94
+# Reuses external MySQL (brewbook-mysql) + host Apache TLS → :8888
+# Does NOT start a MySQL container. Local docker-compose.yml is unchanged.
+
+name: brewsbook-dev
+
+networks:
+  brewsbook:
+    name: brewsbook-dev
+    driver: bridge
+  db_net:
+    name: db-brewbook_app-network
+    external: true
+
+volumes:
+  keycloak_data:
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: brewsbook-dev-keycloak
+    restart: unless-stopped
+    networks: [brewsbook]
+    command:
+      - start-dev
+      - --import-realm
+      - --http-port=8080
+      - --http-relative-path=/auth
+      - --hostname=https://dev-brewsbook.dxtms.com
+      - --hostname-strict=false
+      - --proxy-headers=xforwarded
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_PROXY_HEADERS: xforwarded
+      KC_HOSTNAME: https://dev-brewsbook.dxtms.com
+      KC_HOSTNAME_STRICT: "false"
+    volumes:
+      - ./keycloak/realm-brewsbook.dev.json:/opt/keycloak/data/import/realm-brewsbook.json:ro
+      - keycloak_data:/opt/keycloak/data
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200\\|UP'"]
+      interval: 15s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: brewsbook-dev-api
+    restart: unless-stopped
+    networks: [brewsbook, db_net]
+    environment:
+      APP_ENV: development
+      DB_HOST: ${DB_HOST:-brewbook-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_DATABASE: ${MYSQL_DATABASE:-dev_brewbook}
+      DB_USERNAME: ${MYSQL_USER:-dbBrew}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      OIDC_ISSUER: ${OIDC_ISSUER:-https://dev-brewsbook.dxtms.com/auth/realms/brewsbook}
+      OIDC_API_CLIENT_ID: ${OIDC_API_CLIENT_ID:-brewsbook-api}
+      OIDC_JWKS_URL: ${OIDC_JWKS_URL:-http://keycloak:8080/auth/realms/brewsbook/protocol/openid-connect/certs}
+      OIDC_ALLOWED_AZP: ${OIDC_ALLOWED_AZP:-brewsbook-nextjs,brewsbook-api}
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080/auth
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-brewsbook}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://dev-brewsbook.dxtms.com}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-https://dev-brewsbook.dxtms.com}
+      CI_ENVIRONMENT: production
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 8
+      start_period: 60s
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        PUBLIC_WEB_URL: ${PUBLIC_WEB_URL:-https://dev-brewsbook.dxtms.com}
+        PUBLIC_API_URL: ${PUBLIC_API_URL:-https://dev-brewsbook.dxtms.com}
+        PUBLIC_KEYCLOAK_URL: ${PUBLIC_KEYCLOAK_URL:-https://dev-brewsbook.dxtms.com/auth}
+        NEXT_PUBLIC_OIDC_ISSUER: ${NEXT_PUBLIC_OIDC_ISSUER:-https://dev-brewsbook.dxtms.com/auth/realms/brewsbook}
+        NEXT_PUBLIC_OIDC_CLIENT_ID: ${NEXT_PUBLIC_OIDC_CLIENT_ID:-brewsbook-nextjs}
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-https://dev-brewsbook.dxtms.com}
+        NEXT_PUBLIC_KEYCLOAK_URL: ${PUBLIC_KEYCLOAK_URL:-https://dev-brewsbook.dxtms.com/auth}
+    container_name: brewsbook-dev-web
+    restart: unless-stopped
+    networks: [brewsbook]
+    environment:
+      PUBLIC_WEB_URL: ${PUBLIC_WEB_URL:-https://dev-brewsbook.dxtms.com}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-https://dev-brewsbook.dxtms.com}
+      PUBLIC_KEYCLOAK_URL: ${PUBLIC_KEYCLOAK_URL:-https://dev-brewsbook.dxtms.com/auth}
+      NEXT_PUBLIC_OIDC_ISSUER: ${NEXT_PUBLIC_OIDC_ISSUER:-https://dev-brewsbook.dxtms.com/auth/realms/brewsbook}
+      NEXT_PUBLIC_OIDC_CLIENT_ID: ${NEXT_PUBLIC_OIDC_CLIENT_ID:-brewsbook-nextjs}
+      NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-https://dev-brewsbook.dxtms.com}
+      NEXT_PUBLIC_KEYCLOAK_URL: ${PUBLIC_KEYCLOAK_URL:-https://dev-brewsbook.dxtms.com/auth}
+    depends_on:
+      api:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+
+  reverse-proxy:
+    image: caddy:2.8-alpine
+    container_name: brewsbook-dev-caddy
+    restart: unless-stopped
+    networks: [brewsbook]
+    ports:
+      - "${CADDY_HTTP_PORT:-8888}:80"
+    volumes:
+      - ./caddy/Caddyfile.dev:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - web
+      - api
+      - keycloak

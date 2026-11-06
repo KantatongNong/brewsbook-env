@@ -1,0 +1,27 @@
+# Desired host Apache reverse proxy for DEV Identity stack.
+# Backup existing /etc/httpd/conf.d/dev-brewsbook-reverse.conf before replacing.
+# After edit: sudo apachectl configtest && sudo systemctl reload httpd
+
+<VirtualHost *:80>
+    ServerName dev-brewsbook.dxtms.com
+    Redirect / https://dev-brewsbook.dxtms.com/
+    ErrorLog logs/dev-brewsbook.dxtms.com_error_log
+    CustomLog logs/dev-brewsbook.dxtms.com common
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName dev-brewsbook.dxtms.com
+    ErrorLog logs/dev-brewsbook.dxtms.com_ssl_error_log
+    CustomLog logs/dev-brewsbook.dxtms.com_ssl_access_log common
+
+    ProxyPreserveHost On
+    RequestHeader set X-Forwarded-Proto "https"
+    RequestHeader set X-Forwarded-Port "443"
+
+    ProxyPass / http://127.0.0.1:8888/
+    ProxyPassReverse / http://127.0.0.1:8888/
+
+    SSLCertificateFile /etc/letsencrypt/live/dev-brewsbook.dxtms.com/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/dev-brewsbook.dxtms.com/privkey.pem
+    Include /etc/letsencrypt/options-ssl-apache.conf
+</VirtualHost>

@@ -1,0 +1,144 @@
+{
+  "realm": "brewsbook",
+  "enabled": true,
+  "displayName": "Brewsbook",
+  "registrationAllowed": true,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "sslRequired": "external",
+  "roles": {
+    "realm": [
+      {
+        "name": "buyer",
+        "description": "Default beer buyer / end user"
+      },
+      {
+        "name": "owner",
+        "description": "Shop owner"
+      },
+      {
+        "name": "shop_admin",
+        "description": "Shop administrator"
+      },
+      {
+        "name": "worker",
+        "description": "Shop worker / staff"
+      },
+      {
+        "name": "platform_admin",
+        "description": "Brewsbook platform administrator"
+      }
+    ]
+  },
+  "defaultRoles": [
+    "buyer",
+    "offline_access",
+    "uma_authorization"
+  ],
+  "clients": [
+    {
+      "clientId": "brewsbook-nextjs",
+      "name": "Brewsbook Next.js (public)",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "protocol": "openid-connect",
+      "rootUrl": "https://dev-brewsbook.dxtms.com",
+      "baseUrl": "https://dev-brewsbook.dxtms.com",
+      "redirectUris": [
+        "https://dev-brewsbook.dxtms.com/*",
+        "http://localhost:3000/*",
+        "http://127.0.0.1:3000/*",
+        "https://localhost/*"
+      ],
+      "webOrigins": [
+        "https://dev-brewsbook.dxtms.com",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://localhost",
+        "+"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://dev-brewsbook.dxtms.com/*##http://localhost:3000/*##http://127.0.0.1:3000/*##https://localhost/*"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email",
+        "basic"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ],
+      "fullScopeAllowed": true
+    },
+    {
+      "clientId": "brewsbook-api",
+      "name": "Brewsbook CodeIgniter API (bearer)",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "change-me-api-client-secret",
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "bearerOnly": false,
+      "protocol": "openid-connect",
+      "fullScopeAllowed": true,
+      "attributes": {
+        "access.token.lifespan": "300"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "buyer",
+      "enabled": true,
+      "email": "buyer@brewsbook.local",
+      "emailVerified": true,
+      "firstName": "Bea",
+      "lastName": "Buyer",
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "buyer123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "buyer"
+      ]
+    },
+    {
+      "username": "platform_admin",
+      "enabled": true,
+      "email": "admin@brewsbook.local",
+      "emailVerified": true,
+      "firstName": "Pat",
+      "lastName": "Admin",
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "buyer",
+        "platform_admin"
+      ]
+    }
+  ]
+}

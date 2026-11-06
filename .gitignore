@@ -15,3 +15,5 @@ web/tsconfig.tsbuildinfo
 dev-server/logs/apache/*.log
 *.pem
 *.key
+
+!.env.dev.example

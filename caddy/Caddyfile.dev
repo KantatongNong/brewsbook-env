@@ -1,0 +1,17 @@
+# Brewsbook DEV edge (behind host Apache TLS → 127.0.0.1:8888)
+# Path routing matches local Caddyfile; Keycloak uses HTTP relative path /auth.
+
+:80 {
+	handle /auth* {
+		reverse_proxy keycloak:8080
+	}
+	handle /api* {
+		reverse_proxy api:80
+	}
+	handle /health {
+		reverse_proxy api:80
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}
