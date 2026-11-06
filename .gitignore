@@ -1,0 +1,12 @@
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+mysql/data/
+keycloak/data/
+api/vendor/
+web/node_modules/
+web/.next/
+*.pem
+*.key
