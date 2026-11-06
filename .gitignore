@@ -1,6 +1,9 @@
 .env
 .env.local
 .env.*.local
+!.env.example
+**/.env
+!**/.env.example
 *.log
 .DS_Store
 mysql/data/
@@ -8,5 +11,6 @@ keycloak/data/
 api/vendor/
 web/node_modules/
 web/.next/
+dev-server/logs/apache/*.log
 *.pem
 *.key

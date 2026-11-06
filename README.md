@@ -8,6 +8,8 @@ Local bootstrap for Brewsbook SE — runnable without real FE/API source yet (st
 
 ## Architecture / สถาปัตยกรรม
 
+**Local (this repo root)** — full SE bootstrap with Keycloak:
+
 ```
 Browser → Caddy (reverse-proxy)
             ├─ web   (Next.js stub → real Next later)
@@ -16,18 +18,26 @@ Browser → Caddy (reverse-proxy)
                        └─ mysql:8
 ```
 
-Roles (Keycloak realm `brewsbook`): `buyer` (default), `owner`, `shop_admin`, `worker`, `platform_admin`.
+**Dev server (OVPN)** — mirrored under `dev-server/` from `/opt/dev-brewsbook` on `192.168.3.94`:
+
+```
+Browser → https://dev-brewsbook.dxtms.com/ → (host TLS) → :8888 → PHP 8.3 Apache
+                                                              └─ external MySQL :3305
+```
+
+Roles (Keycloak realm `brewsbook`, **local only** for now): `buyer` (default), `owner`, `shop_admin`, `worker`, `platform_admin`.
 
 ## Prerequisites / สิ่งที่ต้องมี
 
 - Docker Engine + Docker Compose v2
 - Make (optional, มี `Makefile`)
-- พอร์ตว่าง: `80`, `443`, `3000`, `8080`, `8081`, `3306` (ปรับได้ใน `.env`)
+- พอร์ตว่าง local: `80`, `443`, `3000`, `8080`, `8081`, `3306` (ปรับได้ใน `.env`)
+- สำหรับ DEV server: OVPN + SSH ไป `dxnong@192.168.3.94`
 
-## Quick start / เริ่มใช้งาน
+## Quick start (local Keycloak stack) / เริ่มใช้งาน local
 
 ```bash
-cd /workspace/brewsbook-env   # หรือ path ที่ clone มา
+cd brewsbook-env   # หรือ path ที่ clone มา
 cp .env.example .env
 # แก้รหัสผ่านใน .env ให้เป็นค่าของคุณ (อย่า commit .env)
 
@@ -51,6 +61,51 @@ make reset-db    # ลบ volume MySQL แล้วขึ้น mysql ใหม�
 make logs
 ```
 
+## Dev server (OVPN) / เซิร์ฟเวอร์ DEV
+
+| Item | Value |
+|------|-------|
+| Host | `192.168.3.94` (ต้องต่อ OVPN ก่อน) |
+| SSH | `dxnong@192.168.3.94:22` |
+| Path on host | `/opt/dev-brewsbook/` |
+| Web app | `/opt/dev-brewsbook/app-brewsbook/web` |
+| Public URL | https://dev-brewsbook.dxtms.com/ |
+| Container HTTP | host **8888** → container 80 (`dev_app_brewsbook`) |
+| MySQL | `192.168.3.94:3305` DB `dev_brewbook` user `dbBrew` (password **not** in git) |
+| DB UI | http://192.168.3.100:8080/ (server `192.168.3.94:3305`) |
+| Stack | PHP **8.3.36-Apache** only — **no** MySQL/Keycloak/Caddy in that compose |
+| Repo mirror | [`dev-server/`](dev-server/) |
+
+How local compose differs from server:
+
+| | Local `docker-compose.yml` | `dev-server/docker-compose.yml` |
+|--|----------------------------|----------------------------------|
+| Services | mysql + keycloak + api + web + caddy | `web_brewsbook` only |
+| DB | in-compose MySQL :3306 | external host :3305 |
+| Auth | Keycloak start-dev | not included |
+| PHP base | stub 8.2 (`api/`) | **8.3.36-apache** (matches server) |
+| DocumentRoot | stub `/var/www/html` health | runtime **`/var/www/html/web`** (see mismatch note) |
+
+รายละเอียดเทียบ: [docs/DEV_SERVER.md](docs/DEV_SERVER.md)
+
+ลอง mirror บนเครื่อง (ไม่มี DB ใน compose):
+
+```bash
+cd dev-server
+cp .env.example app-brewsbook/.env   # ใส่ค่าจริงเอง — อย่า commit
+docker compose up -d --build
+# http://localhost:8888
+```
+
+### DocumentRoot mismatch (preserved)
+
+เซิร์ฟเวอร์จริงมีค่าไม่ตรงกัน — เก็บไว้ในไฟล์พร้อมคอมเมนต์:
+
+- Compose env `APACHE_DOCUMENT_ROOT=/var/www/html/public`
+- Image vhost `docker/apache/vhost.conf` → `/var/www/html/public`
+- Runtime mount `config/apache/000-default.conf` → **`/var/www/html/web`** (ค่าที่ใช้จริง)
+- เนื้อหาปัจจุบันอยู่ที่ `web/` (Hello World)
+
 ## Default local URLs
 
 | What | URL |
@@ -69,7 +124,7 @@ make logs
 
 คัดลอกจาก `.env.example` → `.env` เท่านั้น — **ห้ามใส่ secret จริงใน git**
 
-ชื่อหลัก (ไม่มีค่าจริงใน repo):
+ชื่อหลัก local (ไม่มีค่าจริงใน repo):
 
 - `MYSQL_ROOT_PASSWORD`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`
 - `KEYCLOAK_ADMIN`, `KEYCLOAK_ADMIN_PASSWORD`
@@ -77,6 +132,12 @@ make logs
 - `OIDC_API_CLIENT_ID`, `OIDC_API_CLIENT_SECRET`
 - `PUBLIC_WEB_URL`, `PUBLIC_API_URL`, `PUBLIC_KEYCLOAK_URL`
 - พอร์ต: `WEB_PORT`, `API_PORT`, `KEYCLOAK_HTTP_PORT`, `MYSQL_PORT`, `CADDY_*`
+
+Dev-server CI keys (placeholders only — see `dev-server/.env.example`):
+
+- `CI_ENVIRONMENT`, `app.baseURL`
+- `database.default.hostname|database|username|password|DBDriver|charSet|DBCollat|port`
+- `app.appTimezone`, `cache.file.storePath`, `session.savePath`
 
 ## Keycloak realm notes / โน้ต realm
 
@@ -94,6 +155,8 @@ make logs
 
 ## Services in compose
 
+### Local (`docker-compose.yml`)
+
 | Service | Image / build | Healthcheck |
 |---------|---------------|-------------|
 | `mysql` | `mysql:8.0` | `mysqladmin ping` |
@@ -104,6 +167,14 @@ make logs
 
 Network: Docker bridge ชื่อ `brewsbook`
 
+### Dev-server mirror (`dev-server/docker-compose.yml`)
+
+| Service | Image / build | Notes |
+|---------|---------------|-------|
+| `web_brewsbook` | build `./app-brewsbook` (`php:8.3.36-apache`) | ports `8888:80`, DB external |
+
+Network: `app-network`
+
 ## MySQL schema stubs
 
 `mysql/init/01-schema.sql` สร้างตารางบาง: `users`, `shops`, `shop_requests`, `shop_modules`, `shop_members`  
@@ -113,30 +184,43 @@ Network: Docker bridge ชื่อ `brewsbook`
 
 - API ไม่ validate JWT ตอนนี้ — แค่ตอบ `/health` เป็น JSON 200
 - Web เป็นหน้า hello ที่ลิงก์ Keycloak/API จาก env — แทนที่ด้วย Next.js + React + Tailwind เมื่อมี source
+- Dev-server `web/` เป็น Hello World ตาม host จริง
 
 ## Layout
 
 ```
 brewsbook-env/
   README.md
-  docker-compose.yml
+  docker-compose.yml          # local Keycloak + MySQL + stubs
   .env.example
   .gitignore
   Makefile
   caddy/Caddyfile
   keycloak/realm-brewsbook.json
   mysql/init/01-schema.sql
-  api/Dockerfile
-  api/public/index.php
-  api/public/health.php
-  web/Dockerfile
-  web/public/index.html
+  api/ …                      # local PHP stub
+  web/ …                      # local nginx stub
   docs/PORTS.md
+  docs/DEV_SERVER.md          # local vs OVPN DEV mapping
+  dev-server/                 # mirror of /opt/dev-brewsbook
+    docker-compose.yml
+    .env.example              # CI-style keys, placeholders only
+    app-brewsbook/
+      Dockerfile
+      .env.example
+      docker/php/php.ini
+      docker/apache/vhost.conf   # baked → /public
+      web/index.html
+    config/apache/
+      000-default.conf           # runtime → /web
+      php.conf
+      apache2.conf
+    logs/apache/
 ```
 
 ## Next steps (SE)
 
-1. ใส่ source Next.js / CodeIgniter จริงแทน stub
+1. ใส่ source Next.js / CodeIgniter จริงแทน stub (align DocumentRoot `public` vs `web`)
 2. ตั้ง staging/prod overlays (Keycloak production mode, HTTPS จริง, secrets manager)
 3. CI/CD, backups, observability
 4. Sync roles policy กับ BA (OQ-14)

@@ -1,0 +1,46 @@
+# Mirrors /opt/dev-brewsbook/docker-compose.yml on DEV host 192.168.3.94
+# OVPN required to reach the host. DB is EXTERNAL (host MySQL :3305), not in this compose.
+#
+# DocumentRoot mismatch (preserved from server — do not "fix" blindly):
+#   - environment APACHE_DOCUMENT_ROOT=/var/www/html/public
+#   - image-baked docker/apache/vhost.conf → DocumentRoot /var/www/html/public
+#   - runtime bind-mount config/apache/000-default.conf → DocumentRoot /var/www/html/web
+#   - live content today lives under app-brewsbook/web/ (Hello World)
+# Runtime wins via the bind-mount of 000-default.conf.
+#
+# Volume mode ":2" on logs is copied as-on-server (likely typo for :rw / omitted mode).
+
+version: "3.8"
+
+services:
+
+  web_brewsbook:
+    build: ./app-brewsbook
+    container_name: dev_app_brewsbook
+    restart: unless-stopped
+    ports:
+      - "8888:80"
+    volumes:
+      - ./app-brewsbook:/var/www/html
+      - ./config/apache/000-default.conf:/etc/apache2/sites-available/000-default.conf:ro
+      - ./config/apache/php.conf:/etc/apache2/conf-available/php.conf:ro
+      # Server has ":2" — preserved literally; may be a typo for ":rw" or no mode.
+      - ./logs/apache:/var/log/apache:2
+   # depends_on:
+   #   db:
+   #     condition: service_healthy
+    networks:
+      - app-network
+    environment:
+      # NOTE: env says /public but runtime vhost (000-default.conf) uses /web — see header comment.
+      - APACHE_DOCUMENT_ROOT=/var/www/html/public
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  app-network:
+    driver: bridge
+
+# volumes:
+#   dbdata:
+#     driver: local
